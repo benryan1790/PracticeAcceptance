@@ -1,9 +1,11 @@
 package stepdefs
 
+import com.google.gson.JsonParser
 import cucumber.api.scala.{EN, ScalaDsl}
 import org.scalatest.Matchers
 import pages.BasePage
 import utils.Env
+import utils.Constants._
 import junit.framework.Assert
 import scala.io.Source
 import scala.util.Random
@@ -71,6 +73,58 @@ class StepDefs extends ScalaDsl with EN with Env with Matchers with BasePage {
     sendKeysById("input-0-0-value", "1231231231")
     clickByCSSSelector("input.button[value='Submit']")
 
+  }
+
+  Then("""^I redirect to the remove (.*) access page$""") { (service: String) =>
+    assert(waitAndFindByCSSSelector("h1").getText== "Remove your organisation's access to a tax or scheme")
+    assert(waitAndFindById("service-name").getText == service)
+  }
+
+  Then("""^I redirect to the Are you sure you want to remove (.*) access\? page$""") { (service: String) =>
+    assert(waitAndFindByCSSSelector("h1").getText== "Are you sure you want to remove your organisation's access?")
+    assert(waitAndFindById("service-name").getText == service)
+  }
+
+  When("""^I call the enrolment store stub and inject details$""") {
+    groupId = "90CCF333-65D2-4BF2-A008" + Random.alphanumeric.take(12).mkString.toUpperCase
+    credId = Random.nextLong().toString.take(12)
+    val url = enrolmentStoreStubUrl
+    val body = s"""{
+    "groupId": "$groupId",
+    "affinityGroup": "Organisation",
+    "users": [
+        {
+            "credId": "$credId",
+            "name": "Default User",
+            "email": "default@example.com",
+            "credentialRole": "Admin",
+            "description": "User Description"
+        }
+    ],
+    "enrolments": [
+    	        {
+            "serviceName": "IR-SA",
+            "identifiers": [
+                {
+                    "key": "UTR",
+                    "value": "11231231231"
+                }
+            ],
+            "enrolmentFriendlyName": "IR SA Enrolment",
+            "assignedUserCreds": [
+                "00000123450"
+            ],
+            "state": "Activated",
+            "enrolmentType": "principal",
+            "assignedToAll": false
+        }
+    ]
+}"""
+    response = postHttpWithTimeout(url, body,10000,60000).header("content-type", "application/json").asString
+  }
+
+  Then("""^the response code is (.*)$""") {(code: Int) =>
+    response.code shouldBe(code)
   }
 
   Then("""^I shut the browser$""") {
