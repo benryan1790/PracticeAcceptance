@@ -2,14 +2,20 @@ package pages
 
 import junit.framework.Assert.assertEquals
 import org.openqa.selenium._
-import org.openqa.selenium.support
+import org.openqa.selenium.support.ui
 import org.scalatest.Matchers
 import org.apache.commons.io.FileUtils
 import utils.Driver
+import utils.Constants
 import java.io.{File, PrintWriter}
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
+
+import org.mongodb.scala.{MongoCollection, MongoDatabase}
+import org.mongodb.scala.bson.collection.immutable.Document
 import org.openqa.selenium.support.ui.{ExpectedConditions, Select, WebDriverWait}
+import scalaj.http.{Http, HttpOptions}
+
 import scala.collection.JavaConverters._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
@@ -317,4 +323,23 @@ trait BasePage extends Matchers{
     driver.close()
     driver.switchTo().window(initialWindows.head)
   }
+
+  def getHttpWithTimeout(url: String, connectionTimeout: Int = 10000, readTimeout: Int = 60000) = {
+    Http(url).option(HttpOptions.connTimeout(connectionTimeout)).option(HttpOptions.readTimeout(readTimeout))
+  }
+
+  def postHttpWithTimeout(url: String, body: String, connectionTimeout: Int = 10000, readTimeout: Int = 60000) = {
+    Http(url).header("content-type", "application/json").postData(body).option(HttpOptions.connTimeout(connectionTimeout)).option(HttpOptions.readTimeout(readTimeout))
+  }
+
+  def putHttpWithTimeout(url: String, body: String, connectionTimeout: Int = 10000, readTimeout: Int = 60000) = {
+    Http(url).put(body).option(HttpOptions.connTimeout(connectionTimeout)).option(HttpOptions.readTimeout(readTimeout))
+  }
+
+  def getCollection(db: MongoDatabase, collectionName: String): MongoCollection[Document] = {
+    db.getCollection(collectionName)
+  }
+
+  def await[A](future: Future[A])(implicit timeout: Duration) = Await.result(future, timeout)
+
 }
